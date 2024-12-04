@@ -8,12 +8,22 @@ class HttpResponse:
         self.headers[key] = value
 
     def set_body(self, body):
+        if isinstance(body, (dict, list)):  
+            import json
+            body = json.dumps(body)
+            self.set_header("Content-Type", "application/json")
+            self.set_header("Content-Length", len(body))
+        else:
+            self.set_header("Content-Length", len(body))
         self.body = body
 
     def set_status_code(self, code):
         self.status_code = code
 
     def build_response(self):
+        """
+        Builds the full HTTP response string.
+        """
         status_message = self._get_status_message(self.status_code)
         response = f"HTTP/1.1 {self.status_code} {status_message}\r\n"
         for key, value in self.headers.items():
@@ -25,45 +35,49 @@ class HttpResponse:
     @staticmethod
     def parse_http_response(response):
         """
-        Parses HTTP response, and returns protocol, status code, status message, headers and body.
+        Parses an HTTP response string into its components.
 
-        :param response: HTTP response
+        :param response: HTTP response string
         :type response: str
-        :return: Dictionary containing the protocol, the status code, the status message, the headers and a body
+        :return: Parsed response components: protocol, status_code, status_message, headers, body
         :rtype: dict
         """
         try:
             lines = response.splitlines()
             status_line = lines[0]
             protocol, status_code, status_message = status_line.split(" ", 2)
+
             headers = {}
             i = 1
-            while lines[i] != "":
+            while i < len(lines) and lines[i] != "":
                 header_line = lines[i]
                 header_key, header_value = header_line.split(": ", 1)
                 headers[header_key] = header_value
                 i += 1
-            body = "\n".join(lines[i+1:])
+
+            body_index = lines.index("") + 1
+            body = "\n".join(lines[body_index:])
+
             return {
                 "protocol": protocol,
                 "status_code": int(status_code),
                 "status_message": status_message,
                 "headers": headers,
-                "body": body
+                "body": body,
             }
 
         except Exception as e:
-            print(f"Error parsing response: {e}")
+            print(f"Error parsing HTTP response: {e}")
             return None
 
     @staticmethod
     def _get_status_message(status_code):
         """
-        Returns the status_message of the HTTP response
+        Returns the status message corresponding to the HTTP status code.
 
-        :param status_code: response code
-        :type status_code: string
-        :return: response message
+        :param status_code: HTTP response code
+        :type status_code: int
+        :return: Status message
         :rtype: str
         """
         messages = {

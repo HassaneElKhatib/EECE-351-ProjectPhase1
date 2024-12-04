@@ -23,28 +23,36 @@ def register(name, email, address, username, password, conn: sqlite3.Connection)
     :return: `True` if registration successful, `False` otherwise 
     :rtype: bool
     """
-    cursor = conn.cursor()
-    salt = bcrypt.gensalt()
-    hashed_password = bcrypt.hashpw(password.encode(), salt)
-    if name and email and address and username and password:
-        try:
-            cursor.execute("Insert into Users (name, email, address, username, password) values (?,?,?,?,?)",
-                           (name, email, address, username, hashed_password))
-            conn.commit()
-            cursor.close()
-            print("[SERVER] Successfully Registered User!")
-            return True
-        except sqlite3.Error as e:
-            print(e)
-        finally:
-            conn.close()
-    return False
+    try:
+        cursor = conn.cursor()
 
+        # Hash the password (if bcrypt is used)
+        hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+
+        # Insert into the Users table
+        cursor.execute(
+            """
+            INSERT INTO Users (name, email, address, username, password)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (name, email, address, username, hashed_password),
+        )
+        conn.commit()  # Commit the transaction
+        print("[SERVER] User registered successfully!")
+        return True
+    except sqlite3.IntegrityError as e:
+        print(f"[SERVER] Integrity error: {e}")
+        return False
+    except sqlite3.Error as e:
+        print(f"[SERVER] Database error: {e}")
+        return False
+    finally:
+        cursor.close()
 
 def login(username, password, conn: sqlite3.Connection):
     """
     Logs in the user to the site by checking the username in the 
-    database as well as the encrypted password
+    database as well as the encrypted password.
 
     :param username: user's username
     :type username: str
@@ -52,21 +60,26 @@ def login(username, password, conn: sqlite3.Connection):
     :type password: str
     :param conn: connects to the database 
     :type conn: sqlite3.Connection
-    :return: `True` if login sucessful, `False` otherwise
+    :return: `True` if login successful, `False` otherwise
     :rtype: bool
     """
     try:
         cursor = conn.cursor()
-        data = cursor.execute(
-            f"select username, password from Users where username='{username}'")
-        user = data.fetchone()
+        cursor.execute("SELECT username, password FROM Users WHERE username = ?", (username,))
+        user = cursor.fetchone()
+
         if user:
-            if bcrypt.checkpw(password.encode(), user[1]):
-                cursor.close()
-                print("[SERVER] Successfully logged in!")
+            stored_password = user[1]
+            if isinstance(stored_password, str):
+                stored_password = stored_password.encode() 
+            if bcrypt.checkpw(password.encode(), stored_password):
+                print(f"[SERVER] User '{username}' logged in successfully.")
                 return True
+            else:
+                print(f"[SERVER] Incorrect password for user '{username}'.")
         else:
-            return None
+            print(f"[SERVER] User '{username}' not found.")
+        return False
     except sqlite3.Error as e:
-        print(e)
-    return False
+        print(f"[SERVER] Database error during login: {e}")
+        return False
