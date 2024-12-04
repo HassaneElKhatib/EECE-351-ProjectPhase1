@@ -104,20 +104,14 @@ def removeProducts(username, name, conn: sqlite3.Connection, client_address, onl
     Removes a product from the database if the requesting user matches the product owner.
 
     :param username: user's username
-    :type username: str
     :param name: product name
-    :type name: str
-    :param conn: connects to database
-    :type conn: sqlite3.Connection
+    :param conn: database connection
     :param client_address: (IP, Port) of the client
-    :type client_address: tuple
     :param online_users: dictionary of online users
-    :type online_users: dict
     :return: True if the product is deleted, False otherwise
-    :rtype: bool
     """
     try:
-        if username not in online_users or online_users[username]["ip"] != client_address[0] or online_users[username]["port"] != client_address[1]:
+        if username not in online_users or online_users[username]["ip"] != client_address[0]:
             print("[SERVER] Unauthorized access attempt for product removal.")
             return False
 
@@ -129,13 +123,15 @@ def removeProducts(username, name, conn: sqlite3.Connection, client_address, onl
             print("[SERVER] Product not found or user is not the owner.")
             return False
 
-        cursor.execute("DELETE FROM Products WHERE name = ?", (name,))
+        cursor.execute("DELETE FROM Products WHERE name = ? AND username = ?", (name, username))
         conn.commit()
         print("[SERVER] Product successfully removed.")
         return True
     except sqlite3.Error as e:
         print(f"[SERVER] Error removing product: {e}")
         return False
+
+
 
 
 def updateProducts(username, name, picture, price, description, quantity, conn: sqlite3.Connection, client_address, online_users):

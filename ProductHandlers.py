@@ -14,17 +14,18 @@ def insert_product_handler(request):
         body = json.loads(request.split("\r\n\r\n")[1])
         username = body.get("username")
         name = body.get("name")
-        picture = body.get("picture")
+        picture = body.get("picture")  
         price = body.get("price")
         description = body.get("description")
         quantity = body.get("quantity")
-
+        if not picture or picture.strip() == "":
+            picture = "http://127.0.0.1:30000/static/default_image.png"  
         if not all([username, name, picture, price, description, quantity]):
             response.set_status_code(400)
             response.set_body(json.dumps({"message": "Missing required fields"}))
             return response
 
-        if insertProducts(username, name, picture, price, description,quantity, conn):
+        if insertProducts(username, name, picture, price, description, quantity, conn):
             response.set_status_code(201)
             response.set_body(json.dumps({"message": "Product added successfully"}))
         else:
@@ -41,15 +42,15 @@ def insert_product_handler(request):
         conn.close()
     return response
 
+
 def remove_product_handler(request, client_address):
     """Handles removing a product with validation."""
     response = HttpResponse()
     conn = sqlite3.connect("auboutique.db")
     try:
         body = json.loads(request.split("\r\n\r\n")[1])
-        username = body.get("username")
-        name = body.get("name")
-
+        username = body.get("username")  
+        name = body.get("name") 
         if not all([username, name]):
             response.set_status_code(400)
             response.set_body(json.dumps({"message": "Missing required fields"}))
@@ -59,7 +60,7 @@ def remove_product_handler(request, client_address):
             response.set_status_code(200)
             response.set_body(json.dumps({"message": "Product removed successfully"}))
         else:
-            response.set_status_code(403)  
+            response.set_status_code(403)
             response.set_body(json.dumps({"message": "Unauthorized or product not found"}))
     except json.JSONDecodeError:
         response.set_status_code(400)
@@ -71,6 +72,8 @@ def remove_product_handler(request, client_address):
     finally:
         conn.close()
     return response
+
+
 
 
 def update_product_handler(request, client_address):

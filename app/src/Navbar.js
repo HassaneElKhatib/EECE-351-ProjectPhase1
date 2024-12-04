@@ -131,9 +131,9 @@ export default function SearchAppBar() {
             </Dialog>
             <Dialog open={openDialog === "removeProduct"} onClose={handleDialogClose}>
                 <RemoveProduct
-                    username={username}
+                    username={username} 
+                    productName={products.name} 
                     onSnackbarOpen={openSnackbar}
-                    onClose={handleDialogClose}
                     onProductChange={fetchProducts}
                 />
             </Dialog>
@@ -241,9 +241,17 @@ export default function SearchAppBar() {
                             >
                                 <CardMedia
                                     component="img"
-                                    image={product.picture}
+                                    image={(function getImage() {
+                                        try {
+                                            return require(`./images/${product.picture}`);
+                                        } catch (err) {
+                                            console.error(`Error loading image: ${product.picture}`, err);
+                                            return require(`./images/default.png`); 
+                                        }
+                                    })()}
                                     alt={product.name}
-                                    sx={{ height: 200, objectFit: "contain" }}
+                                    sx={{ height: 145, objectFit: "contain" }}
+
                                 />
                                 <CardContent>
                                     <Typography variant="h6">{product.name}</Typography>
@@ -260,14 +268,12 @@ export default function SearchAppBar() {
                                 </CardContent>
                                 {username === product.username && ( 
                                     <>
-                                        <Button
-                                            variant="contained"
-                                            color="secondary"
-                                            fullWidth
-                                            onClick={() => setOpenDialog("removeProduct")}
-                                        >
-                                            Remove Product
-                                        </Button>
+                                        <RemoveProduct
+                                            username={username}
+                                            productName={product.name}
+                                            onSnackbarOpen={openSnackbar}
+                                            onProductChange={fetchProducts}
+                                        />
                                         <Button
                                             variant="contained"
                                             color="warning"
